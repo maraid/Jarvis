@@ -27,8 +27,10 @@ int HandsetHandler::available()
 
 void HandsetHandler::setup()
 {
-    Serial.begin(BAUDRATE);
-    
+    if (!Serial) {
+        Serial.begin(BAUDRATE);
+    }
+
     if (mMode != HandsetMode::Factory)
         mAlwaysOnTimer.start();
 }
