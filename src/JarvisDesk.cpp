@@ -2,6 +2,7 @@
 #include "Timer.h"
 #include <math.h>
 
+static const char* TAG = "JarvisDesk";
 
 Timer T1(10000);
 
@@ -27,10 +28,10 @@ void JarvisDesk::loop()
 
     handleHandset();
     handleControlbox();
-    
+
     if (!mSettings and T1.isFinished())
     {
-        ESP_LOGI("TAG", "Requesting settings from controlbox...");
+        ESP_LOGI(TAG, "Requesting settings from controlbox...");
         requestAllSettings();
         T1.restart();
     }
@@ -44,7 +45,7 @@ void JarvisDesk::handleHandset()
         return;
     }
     
-    // ESP_LOGI("TAG", "%s", inMsg.toString().c_str());
+    // ESP_LOGI(TAG, "%s", inMsg.toString().c_str());
     
     // On powerup make the handset stop sending wake commands.
     switch(inMsg.getType())
@@ -76,7 +77,7 @@ void JarvisDesk::handleControlbox()
         return;
     }
     
-    // ESP_LOGI("TAG", "%s", inMsg.toString().c_str());
+    // ESP_LOGI(TAG, "%s", inMsg.toString().c_str());
 
     extractSetting(inMsg);
 
@@ -105,7 +106,7 @@ void JarvisDesk::extractSetting(const SerialMessage& msg)
     {
         mSettings.sensitivity = msg.getParam<SensitivityValue>();
         
-        ESP_LOGI("TAG", "Sensitivity: ", mSettings.sensitivity);
+        // ESP_LOGI(TAG, "Sensitivity: ", mSettings.sensitivity);
         
         sPreset1->publish_state(mSettings.getPreset1()); 
         sPreset2->publish_state(mSettings.getPreset2()); 
@@ -215,7 +216,7 @@ void JarvisDesk::setUnits(const char* value)
     }
     else
     {
-        ESP_LOGW("TAG", "Unknown units value received: [%s]", value);
+        ESP_LOGW(TAG, "Unknown units value received: [%s]", value);
         return;
     }
     
@@ -238,7 +239,7 @@ void JarvisDesk::setTouchMode(const char* value)
     }
     else
     {
-        ESP_LOGW("TAG", "Unknown touch mode value received: [%s]", value);
+        ESP_LOGW(TAG, "Unknown touch mode value received: [%s]", value);
         return;
     }
     
@@ -261,7 +262,7 @@ void JarvisDesk::setKillMode(const char* value)
     }
     else
     {
-        ESP_LOGW("TAG", "Unknown kill mode value received: [%s]", value);
+        ESP_LOGW(TAG, "Unknown kill mode value received: [%s]", value);
         return;
     }
     SerialMessage newcmd(CommandFromHandsetType::SetKillMode);
@@ -287,7 +288,7 @@ void JarvisDesk::setSensitivity(const char* value)
     }
     else
     {
-        ESP_LOGW("TAG", "Unknown sensitivity value received: [%s]", value);
+        ESP_LOGW(TAG, "Unknown sensitivity value received: [%s]", value);
         return;
     }
     SerialMessage newcmd(CommandFromHandsetType::SetSensitivity);
