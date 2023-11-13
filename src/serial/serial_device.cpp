@@ -1,14 +1,29 @@
-#include "SerialDevice.h"
+#include <Arduino.h>
+
+#include "serial_device.h"
 #include "utils.h"
-// #include "TelnetLogger.h"
+#include "constants.h"
+
+// SERIAL DEVICE
 
 SerialDevice::SerialDevice(uint8_t id) 
-    : mId(id), mPMSize(0), mSMState(StateMachineState::Start)
+    : mId(id)
 {
 }
 
-SerialDevice::~SerialDevice()
+void SerialDevice::setup()
 {
+}
+
+void SerialDevice::loop()
+{
+    uint8_t packet[MAX_PACKET_SIZE];
+    uint8_t size;
+    while (!m_buffer.isEmpty())
+    {
+        m_buffer.pop_front().construct(packet, size);
+        sendPacket(packet, size);
+    }
 }
 
 void SerialDevice::sendPacket(
@@ -19,13 +34,10 @@ void SerialDevice::sendPacket(
 
 void SerialDevice::sendMessage(const SerialMessage& msg, uint8_t repetition)
 {
-    // Log.println("Out:", msg.toString());
-
-    uint8_t packet[MAX_PACKET_SIZE];
-    msg.construct(packet);
-
-    for (int i = 0; i < repetition; ++i)
-        sendPacket(packet, msg.getPacketLength());
+    for (int _ = 0; _ < repetition; ++_)
+    {
+        m_buffer.push_back(msg);
+    }
 }
 
 void SerialDevice::sendMessage(const SerialMessage&& msg, uint8_t repetition)
@@ -172,3 +184,73 @@ bool SerialDevice::processData(uint8_t oktet)
     }
     return false;
 }
+
+HardwareSerialDevice::HardwareSerialDevice(SourceType sourceType)
+    : SerialDevice(sourceType)
+{
+}
+
+size_t HardwareSerialDevice::write(uint8_t byte)
+{ 
+    return Serial.write(byte); 
+}
+
+int HardwareSerialDevice::read()
+{ 
+    return Serial.read(); 
+}
+
+int HardwareSerialDevice::available()
+{ 
+    return Serial.available(); 
+}
+
+void HardwareSerialDevice::setup()
+{
+    SerialDevice::setup();
+    Serial.begin(constants::BAUDRATE);
+}
+
+void HardwareSerialDevice::loop()
+{
+    SerialDevice::loop();
+}
+
+SoftwareSerialDevice::SoftwareSerialDevice(SourceType sourceType)
+    : SerialDevice(sourceType)
+{
+}
+
+size_t  SoftwareSerialDevice::write(uint8_t byte) 
+{
+    return m_serial.write(byte); 
+}
+
+int SoftwareSerialDevice::read()
+{ 
+    return m_serial.read();
+}
+
+int SoftwareSerialDevice::available() 
+{ 
+    return m_serial.available(); 
+}
+
+void SoftwareSerialDevice::setup()
+{
+    SerialDevice::setup();
+    m_serial.begin(
+        constants::BAUDRATE, 
+        SWSERIAL_8N1, 
+        constants::SOFTWARE_SERIAL_RX,
+        constants::SOFTWARE_SERIAL_TX,
+        false,
+        constants::SOFTWARE_SERIAL_INPUT_BUFFER_SIZE,
+        0); 
+}
+
+void SoftwareSerialDevice::loop()
+{
+    SerialDevice::loop();
+}
+

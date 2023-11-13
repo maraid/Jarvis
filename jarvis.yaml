@@ -9,20 +9,28 @@ esphome:
   platform: ESP8266
   board: d1_mini
   includes:
-    - jarvis/include/JarvisDesk.h
-    - jarvis/src/JarvisDesk.cpp
-    - jarvis/include/HandsetHandler.h
-    - jarvis/src/HandsetHandler.cpp
-    - jarvis/include/ControlboxHandler.h
-    - jarvis/src/ControlboxHandler.cpp
-    - jarvis/include/SerialDevice.h
-    - jarvis/src/SerialDevice.cpp
-    - jarvis/include/SerialMessage.h
-    - jarvis/src/SerialMessage.cpp
-    - jarvis/include/utils.h
-    - jarvis/src/utils.cpp
-    - jarvis/include/Timer.h
-    - jarvis/src/Timer.cpp
+    - src/adapter/esphome/esphome_adapter.h
+    - src/adapter/esphome/esphome_adapter.cpp
+    - src/adapter/esphome/callbacks.h
+    - src/common/constants.h
+    - src/common/logger.h
+    - src/common/logger.cpp
+    - src/common/ring_buffer.h
+    - src/common/timer.h
+    - src/common/timer.cpp
+    - src/common/utils.h
+    - src/common/utils.cpp
+    - src/serial/serial_device.h
+    - src/serial/serial_device.cpp
+    - src/serial/serial_message.h
+    - src/serial/serial_message.cpp
+    - src/controller_handler.h
+    - src/controller_handler.cpp
+    - src/handset_handler.h
+    - src/handset_handler.cpp
+    - src/jarvis.h
+    - src/jarvis.cpp
+
   libraries:
     - espsoftwareserial
     
@@ -34,7 +42,7 @@ wifi:
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Jarvis Fallback Hotspot"
-    password: "xxxxxx"
+    password: "h1fsn2O9OSkB"
 
 web_server:
   port: 80
@@ -53,22 +61,23 @@ ota:
 
 custom_component:
   lambda: |-
-    auto my_custom = new JarvisDesk();
-    my_custom->sHeight = id(height_number);
-    my_custom->sPreset1 = id(preset_1_sensor);
-    my_custom->sPreset2 = id(preset_2_sensor);
-    my_custom->sPreset3 = id(preset_3_sensor);
-    my_custom->sPreset4 = id(preset_4_sensor);
-    my_custom->sSysLimitMin = id(sys_limit_min);
-    my_custom->sSysLimitMax = id(sys_limit_max);
-    my_custom->sUserLimitMin = id(user_limit_min);
-    my_custom->sUserLimitMax = id(user_limit_max);
-    my_custom->sUserLimitSet = id(user_limit_set);
-    my_custom->sUnits = id(units_select);
-    my_custom->sTouchMode = id(touch_mode_select);
-    my_custom->sKillMode = id(kill_mode_select);
-    my_custom->sSensitivity = id(sensitivity_select);
-    return {my_custom};
+    auto jarvis = new EspHomeJarvisAdapter(
+      id(height_number),
+      id(preset_1_sensor),
+      id(preset_2_sensor),
+      id(preset_3_sensor),
+      id(preset_4_sensor),
+      id(sys_limit_min),
+      id(sys_limit_max),
+      id(user_limit_min),
+      id(user_limit_max),
+      id(user_limit_set),
+      id(units_select),
+      id(touch_mode_select),
+      id(anti_collision_mode_select),
+      id(sensitivity_select)
+    );
+    return {jarvis};
   components:
     - id: desk
 
@@ -101,14 +110,14 @@ sensor:
   - platform: template
     name: "$name System limit max"
     id: sys_limit_max
-  - platform: dht
-    model: DHT11
-    pin: D3
-    temperature:
-      name: "Room Temperature"
-    humidity:
-      name: "Room Humidity"
-    update_interval: 60s
+  # - platform: dht
+  #   model: DHT22
+  #   pin: D3
+  #   temperature:
+  #     name: "Room Temperature"
+  #   humidity:
+  #     name: "Room Humidity"
+  #   update_interval: 60s
 
 text_sensor:
   - platform: template
@@ -124,7 +133,7 @@ select:
       - cm
     optimistic: false
     set_action:
-      - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setUnits(x.c_str());
+      - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setUnits(x.c_str());
   - platform: template
     name: "$name Touch Mode"
     id: touch_mode_select
@@ -133,16 +142,16 @@ select:
       - Single
     optimistic: false
     set_action:
-      - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setTouchMode(x.c_str());
+      - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setTouchMode(x.c_str());
   - platform: template
-    name: "$name Kill Mode"
-    id: kill_mode_select
+    name: "$name Anti-Collision Mode"
+    id: anti_collision_mode_select
     options:
-      - Kill
-      - LetLive
+      - Disabled
+      - Enabled
     optimistic: false
     set_action:
-      - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setKillMode(x.c_str());
+      - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setAntiCollisionMode(x.c_str());
   - platform: template
     name: "$name Sensitivity"
     id: sensitivity_select
@@ -152,7 +161,7 @@ select:
       - Low
     optimistic: false
     set_action:
-      - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setSensitivity(x.c_str());
+      - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setSensitivity(x.c_str());
 
 number:
   - platform: template
@@ -163,7 +172,7 @@ number:
     max_value: 1800
     step: 10
     set_action:
-      - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).move(x);
+      - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).moveTo(x);
   - platform: template
     name: "$name Offset"
     id: offset_number
@@ -172,16 +181,16 @@ number:
     max_value: 1800
     step: 1
     set_action:
-      - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setOffset(x);
+      - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setOffset(x);
   - platform: template
     name: "$name Display number"
     id: display_number
     optimistic: true
-    min_value: 1
-    max_value: 1800
-    step: 1
+    min_value: 0.1
+    max_value: 180
+    step: 0.1
     set_action:
-      - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setDisplayNumber(x*10);
+      - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setDisplayNumber(x*10);
 
 button:
   - platform: template
@@ -189,69 +198,77 @@ button:
     id: go_preset_1
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).goPreset1();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).moveToPreset1();
   - platform: template
     name: "$name Go to preset 2"
     id: go_preset_2
     on_press:
-      - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).goPreset2();
+      - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).moveToPreset2();
   - platform: template
     name: "$name Go to preset 3"
     id: go_preset_3
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).goPreset3();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).moveToPreset3();
   - platform: template
     name: "$name Go to preset 4"
     id: go_preset_4
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).goPreset4();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).moveToPreset4();
   - platform: template
     name: "$name Set preset 1"
     id: set_preset_1
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setPreset1();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setPreset1();
   - platform: template
     name: "$name Set preset 2"
     id: set_preset_2
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setPreset2();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setPreset2();
   - platform: template
     name: "$name Set preset 3"
     id: set_preset_3
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setPreset3();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setPreset3();
   - platform: template
     name: "$name Set preset 4"
     id: set_preset_4
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setPreset4();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setPreset4();
   - platform: template
     name: "$name Set max height"
     id: set_max_height
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setMaxHeight();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setMaxHeight();
   - platform: template
     name: "$name Set min height"
     id: set_min_height
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).setMinHeight();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setMinHeight();
   - platform: template
     name: "$name Set max height"
     id: clear_max_height
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).clearMaxHeight();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).clearMaxHeight();
   - platform: template
     name: "$name Set min height"
     id: clear_min_height
     on_press:
       then:
-        - lambda: (*reinterpret_cast<JarvisDesk*>(id(desk))).clearMinHeight();
+        - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).clearMinHeight();
+
+
+
+
+
+
+
+

@@ -34,10 +34,10 @@ enum class TouchModeValue : uint8_t
     Unkown     = 0xFF
 };
 
-enum class KillModeValue : uint8_t
+enum class AntiCollisionModeValue : uint8_t
 {
-    Kill       = 0x00,
-    LetLive    = 0x01,
+    Disabled   = 0x00,
+    Enabled    = 0x01,
     Unkown     = 0xFF
 };
 
@@ -50,20 +50,23 @@ enum class SensitivityValue : uint8_t
 };
 
 String char2hex(uint8_t c);
-
 String array2String(uint8_t *packet, size_t packetSize);
 
 std::string valToString(UnitsValue units);
 std::string valToString(UserLimitSetValue limits);
 std::string valToString(userLimitReachedValue limits);
 std::string valToString(TouchModeValue mode);
-std::string valToString(KillModeValue mode);
+std::string valToString(AntiCollisionModeValue mode);
 std::string valToString(SensitivityValue sens);
-
-template<class T>
-T getByteType(uint8_t value);
 
 template <class T, size_t N>
 bool verifyByteAgainstArray(uint8_t b, T (&array)[N]);
 
-#endif   // UTILS_H
+template<typename PARAM_T>
+class Callback
+{
+public:
+    virtual void operator()(PARAM_T param) = 0;
+};
+
+#endif

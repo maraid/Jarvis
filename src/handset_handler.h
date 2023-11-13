@@ -1,8 +1,8 @@
 #ifndef HANDSETHANDLER_H
 #define HANDSETHANDLER_H
 
-#include "SerialDevice.h"
-#include "Timer.h"
+#include "serial_device.h"
+#include "timer.h"
 #include "utils.h"
 
 enum HandsetMode
@@ -13,7 +13,7 @@ enum HandsetMode
     ShowValue
 };
 
-class HandsetHandler : public SerialDevice
+class HandsetHandler : public HardwareSerialDevice
 {
 public:
     HandsetHandler();
@@ -25,23 +25,17 @@ public:
     void displayError(uint8_t code);
 
     void setHandsetMode(HandsetMode mode);
-    void handleCBMessage(SerialMessage& msg);
+    void handleMessage(const SerialMessage& msg);
     void executeLedsOffExploit();
     uint16_t getLastReportedHeight();
-    
-protected:
-    size_t write(uint8_t byte) override;
-    int read() override;
-    int available() override;
-    using Print::write;
 
 private:
-    Timer mAlwaysOnTimer;
-    Timer mDisplayValueTimer;
-    HandsetMode mMode;
+    Timer m_alwaysOnTimer{constants::ALWAYS_ON_TIMER_DELAY};
+    Timer m_displayValueTimer{constants::DISPLAY_VALUE_TIMER_DELAY};
+    HandsetMode m_mode{HandsetMode::ShowValue};
 
-    uint16_t mLastReportedHeight;
-    uint16_t mDisplayValue;
+    uint16_t m_lastReportedHeight{0};
+    uint16_t m_displayValue;
 };
 
-#endif  // HANDSETHANDLER_H
+#endif

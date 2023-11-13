@@ -1,27 +1,26 @@
-#include "utils.h"
-#include "SerialMessage.h"
+#include "serial_message.h"
 
 SerialMessage::SerialMessage()
 {
 }
 
-SerialMessage::SerialMessage(CommandFromControlboxType cmd)
-    : SerialMessage(SourceType::Controlbox, cmd, 0)
+SerialMessage::SerialMessage(CommandFromControllerType cmd)
+    : SerialMessage(SourceType::Controller, cmd, 0)
 {
 }
 
-SerialMessage::SerialMessage(CommandFromControlboxType cmd, uint8_t p0)
-    : SerialMessage(SourceType::Controlbox, cmd, 1, p0)
+SerialMessage::SerialMessage(CommandFromControllerType cmd, uint8_t p0)
+    : SerialMessage(SourceType::Controller, cmd, 1, p0)
 {
 }
 
-SerialMessage::SerialMessage(CommandFromControlboxType cmd, uint8_t p0, uint8_t p1)
-    : SerialMessage(SourceType::Controlbox, cmd, 2, p0, p1)
+SerialMessage::SerialMessage(CommandFromControllerType cmd, uint8_t p0, uint8_t p1)
+    : SerialMessage(SourceType::Controller, cmd, 2, p0, p1)
 {
 }
 
-SerialMessage::SerialMessage(CommandFromControlboxType cmd, uint16_t p01)
-    : SerialMessage(SourceType::Controlbox, cmd, 2, FIRST_BYTE(p01), SECOND_BYTE(p01))
+SerialMessage::SerialMessage(CommandFromControllerType cmd, uint16_t p01)
+    : SerialMessage(SourceType::Controller, cmd, 2, FIRST_BYTE(p01), SECOND_BYTE(p01))
 {
 }
 
@@ -45,6 +44,30 @@ SerialMessage::SerialMessage(CommandFromHandsetType cmd, uint16_t p01)
 {
 }
 
+SerialMessage::SerialMessage(CommandFromHandsetType cmd, UnitsValue p)
+    : SerialMessage(cmd)
+{
+    setParam<UnitsValue>(p);
+}
+
+SerialMessage::SerialMessage(CommandFromHandsetType cmd, TouchModeValue p)
+    : SerialMessage(cmd)
+{
+    setParam<TouchModeValue>(p);
+}
+
+SerialMessage::SerialMessage(CommandFromHandsetType cmd, AntiCollisionModeValue p)
+    : SerialMessage(cmd)
+{
+    setParam<AntiCollisionModeValue>(p);
+}
+
+SerialMessage::SerialMessage(CommandFromHandsetType cmd, SensitivityValue p)
+    : SerialMessage(cmd)
+{
+    setParam<SensitivityValue>(p);
+}
+
 SerialMessage::SerialMessage(
     uint8_t sourceType,
     uint8_t commandType, 
@@ -63,8 +86,9 @@ SerialMessage::SerialMessage(
 String SerialMessage::toString() const
 {
     uint8_t packet[MAX_PACKET_SIZE];
-    construct(packet);
-    return array2String(packet, getPacketLength());
+    uint8_t size;
+    construct(packet, size);
+    return array2String(packet, size);
 }
 
 uint8_t SerialMessage::getType() const
@@ -162,7 +186,7 @@ uint8_t SerialMessage::computeChecksum(uint8_t command, uint8_t paramSize, const
     return checksum;
 }
 
-void SerialMessage::construct(uint8_t* data) const
+void SerialMessage::construct(uint8_t* data, uint8_t& size) const
 {
     data[0] = data[1] = mSourceId;
     data[2] = mType;
@@ -171,6 +195,7 @@ void SerialMessage::construct(uint8_t* data) const
     data[5 + mParamSize] = 0x7E;
 
     memcpy(data + 4, mParams, mParamSize);
+    size = getPacketLength();
 }
 
 bool SerialMessage::setPacket(uint8_t* data, size_t dataSize)
@@ -202,7 +227,7 @@ bool SerialMessage::verifyPacket(uint8_t* data, size_t dataSize)
 
     return data[0] == data[1]
            && (   data[0] == SourceType::Handset
-               || data[0] == SourceType::Controlbox)
+               || data[0] == SourceType::Controller)
            && data[0] == data[1]
            && dataSize == static_cast<size_t>(6 + paramSize)
            && data[dataSize - 2] == computeChecksum(data[2], data[3], params)

@@ -1,16 +1,8 @@
-# ESPHome Jarvis component
+# Jarvis
 
-This project is a ESPHome component for [fully's Jarvis standing desk](https://www.fully.com/standing-desks/jarvis.html). 
+Making [Fully's (Herman Miller's) Jarvis standing desk](https://www.fully.com/standing-desks/jarvis.html) smart.
 
-It enables Home Assistant to control the desk and get data out of it. It has all the features from the official handset and more. It's a man-in-the-middle device to control all UART messages between the desk's controller and the handset.
-
-### Backstory
-Originally I wanted to be able to control the desk from a Home Assistant automation so I started looking if there are any projects that has done this already. Luckily, I came across [Phil Hord's IoT project](https://github.com/phord/Jarvis), which I strongly recommend to check out. He has done the reverse engineering of the communication and the wiring that I extensively used to create this project. In the beginning I tried to make that work for Home Assistant but during that I realized that I could probably use the screen for other things (temperature, humidity, stock market changes?).
-
-So I started reverse engineer it even further. I discovered, through fuzzing about 2 dozen of message types that were not used by neither the controller nor the handset in the stock configuration and managed to exploit some bugs as well that I found during the journey. With all that knowledge I decided to implement a man-in-the-middle device that captures all traffic and is able to inject fake messages into both of the data streams.
-
-There were 3 things I wanted to have: (1) The ability to turn the screen on anytime for notification (this I think is impossible). (2) Always-on display to show numbers without activating the screen. I really didn't like touching it twice to move it. (3) Custom numbers on the display to have something more useful than the current height, which is almost completely useless for me.
-
+A man-in-the-middle device to control all UART messages between the desk's controller and the handset. Currently it supports standalone functionality and ESPHome, but it's written so it's easy to adapt to any platform you'd like. It can be used to add custom controls in case you received yours without one.
 
 ## Features
 
@@ -28,9 +20,14 @@ Exploits that has not yet been implemented:
 
 * Always-on leds with no display
 * Always off leds and display but active handset. "Dark mode"
+## Backstory
 
+Originally, I wanted to be able to control the desk from a Home Assistant automation so I started looking if there are any projects that has done this already. Luckily, I came across [Phil Hord's IoT project](https://github.com/phord/Jarvis), which I strongly recommend to check out. He has done the reverse engineering of the communication and the wiring that I extensively used to create this project. In the beginning I tried to make that work for Home Assistant but during that I realized that I could probably use the screen for other things (temperature, humidity, stock market changes?).
 
-## Technical notes
+So I started reverse engineer it even further. I discovered, through fuzzing about 2 dozen of message types that were not used by neither the controller nor the handset in the stock configuration and managed to exploit some bugs as well that I found during the journey. With all that knowledge I decided to implement a man-in-the-middle device that captures all traffic and is able to inject fake messages into both of the data streams.
+
+There were 3 things I wanted to have: (1) The ability to turn the screen on anytime for notification (this I think is impossible). (2) Always-on display to show numbers without activating the screen. I really didn't like touching it twice to move it. (3) Custom numbers on the display to have something more useful than the current height, which is almost completely useless for me.
+## Technical Notes
 
 Check out [Phil's repository](https://github.com/phord/Jarvis) for details on the wiring and the communication protocol.
 
@@ -45,8 +42,8 @@ Important findings:
 	* The screen turns off if the received 0x01 is the same as the number in 0x1B for ~9 seconds. This means that if an out-of-range number is being sent periodically (0 or anything above 1800) the screen won't turn off, since 0x1B won't be updated.
 	* Some errors can turn it on in off mode without touching, but I found no way to keep it active, it always goes to sleep mode after the error disappears.
 	* I found no way of changing brightness or locking the handset since these are self contained.
-* __Controlbox__:
-	* Kill mode: disable anti-collision. It's not possible through the handset for some weird reason.
+* __Controller__:
+	* Anti-collision mode: enable-disable. It's not possible through the handset.
 	* You can get the current settings with 0x07. Check the sheet for details.
 	* No motor frequency change or anything too crazy unfortunately.
 	* I managed to crash it a couple of times, rendering it unresponsive, but I cannot reproduce it. A simple power cycle fixes it though.
@@ -57,11 +54,9 @@ Important findings:
 
 ## Installation
 
-#### Requirements:
+Check src/adapters to see the ESPHome and Standalone implementation
 
-* [Home Assistant](https://www.home-assistant.io/)
-* Wemos D1 Mini. Or whatever ESP8266 board you find at home.
-* A bit of soldering.
+## License
 
-In progress...
+[MIT](https://choosealicense.com/licenses/mit/)
 

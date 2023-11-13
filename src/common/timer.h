@@ -1,5 +1,5 @@
-#ifndef Timer_h
-#define Timer_h
+#ifndef TIMER_H
+#define TIMER_H
 
 #include <Arduino.h>
 
@@ -25,10 +25,10 @@ public:
     TimerStateType& getState();
 
 private:
-    uint32_t mStart;
-    uint32_t mDuration;
-    uint32_t mFinish;
-    TimerStateType mState;
+    uint32_t m_start;
+    uint32_t m_duration;
+    uint32_t m_finish;
+    TimerStateType m_state;
 };
 
-#endif  // Timer_h
+#endif  // TIMER_H

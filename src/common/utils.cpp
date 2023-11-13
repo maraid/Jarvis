@@ -60,12 +60,12 @@ std::string valToString(TouchModeValue mode)
     }
 }
 
-std::string valToString(KillModeValue mode)
+std::string valToString(AntiCollisionModeValue mode)
 {
     switch(mode)
     {
-        case KillModeValue::Kill: return "Kill";
-        case KillModeValue::LetLive: return "LetLive";
+        case AntiCollisionModeValue::Disabled: return "Disabled";
+        case AntiCollisionModeValue::Enabled: return "Enabled";
         default: return "unset";
     }
 }
