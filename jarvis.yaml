@@ -253,13 +253,13 @@ button:
       then:
         - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setMinHeight();
   - platform: template
-    name: "$name Set max height"
+    name: "$name Clear max height"
     id: clear_max_height
     on_press:
       then:
         - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).clearMaxHeight();
   - platform: template
-    name: "$name Set min height"
+    name: "$name Clear min height"
     id: clear_min_height
     on_press:
       then:
