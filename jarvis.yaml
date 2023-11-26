@@ -112,14 +112,14 @@ sensor:
   - platform: template
     name: "$name System limit max"
     id: sys_limit_max
-  - platform: dht
-    model: DHT22
-    pin: D3
-    temperature:
-      name: "Room Temperature"
-    humidity:
-      name: "Room Humidity"
-    update_interval: 60s
+#   - platform: dht
+#     model: DHT22
+#     pin: D3
+#     temperature:
+#       name: "Room Temperature"
+#     humidity:
+#       name: "Room Humidity"
+#     update_interval: 60s
 
 text_sensor:
   - platform: template
