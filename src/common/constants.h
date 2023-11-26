@@ -12,12 +12,8 @@ namespace constants
     // GPIO of TX port for SoftwareSerial
     constexpr int SOFTWARE_SERIAL_TX = 4;
 
-    // Input buffer size for SoftwareSerial
-    // Increase if the Controller fills the buffer and causes packet loss 
-    constexpr int SOFTWARE_SERIAL_INPUT_BUFFER_SIZE = 64;
-
     // Time in ms to wait between sending keep alive messages to the handset
-    constexpr int ALWAYS_ON_TIMER_DELAY = 110;
+    constexpr int ALWAYS_ON_TIMER_DELAY = 200;
 
     // Time in ms to wait after showing the desk height and show the custom value
     constexpr int DISPLAY_VALUE_TIMER_DELAY = 1000;

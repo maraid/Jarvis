@@ -103,7 +103,6 @@ struct EspHomeJarvisAdapter : public Component
 
     void setOffset(uint16_t offset);
     void moveTo(uint16_t height);
-    void turnLedsOff();
     
     void setUnits(const char* value);
     void setTouchMode(const char* value);

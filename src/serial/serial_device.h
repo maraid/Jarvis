@@ -9,6 +9,7 @@
 #include "constants.h"
 #include "timer.h"
 #include "ring_buffer.h"
+#include "packet.h"
 
 class SerialDevice : public Print
 {
@@ -45,14 +46,13 @@ private:
         End
     };
 
-    void sendPacket(uint8_t* packet, size_t packetSize);
-    bool fetchNextCommand(uint8_t* array, size_t& arraySize);
+    void sendPacket(const Packet& packet);
+    bool fetchNextCommand(Packet& packet);
     bool processData(uint8_t oktet);
 
-    uint8_t mId;
-    uint8_t mPartialMessage[MAX_PACKET_SIZE];
-    size_t mPMSize{0};
-    StateMachineState mSMState{StateMachineState::Start};
+    uint8_t m_id;
+    Packet m_partialPacket;
+    StateMachineState m_stateMachineState{StateMachineState::Start};
     RingBuffer<SerialMessage, 16> m_buffer;
 };
 

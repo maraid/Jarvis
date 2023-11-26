@@ -3,11 +3,12 @@
 #include "serial_device.h"
 #include "utils.h"
 #include "constants.h"
+#include "logger.h"
 
 // SERIAL DEVICE
 
 SerialDevice::SerialDevice(uint8_t id) 
-    : mId(id)
+    : m_id(id)
 {
 }
 
@@ -17,19 +18,15 @@ void SerialDevice::setup()
 
 void SerialDevice::loop()
 {
-    uint8_t packet[MAX_PACKET_SIZE];
-    uint8_t size;
     while (!m_buffer.isEmpty())
     {
-        m_buffer.pop_front().construct(packet, size);
-        sendPacket(packet, size);
+        sendPacket(m_buffer.pop_front().construct());
     }
 }
 
-void SerialDevice::sendPacket(
-    uint8_t* packet, size_t packetSize)
+void SerialDevice::sendPacket(const Packet& packet)
 {
-    write(packet, packetSize);
+    write(packet.data(), packet.size());
 }
 
 void SerialDevice::sendMessage(const SerialMessage& msg, uint8_t repetition)
@@ -47,139 +44,129 @@ void SerialDevice::sendMessage(const SerialMessage&& msg, uint8_t repetition)
 
 bool SerialDevice::fetchMessage(SerialMessage& msg)
 {
-    uint8_t buffer[MAX_PACKET_SIZE]; 
-    size_t bufSize = 0;
-
-    bool succ = fetchNextCommand(buffer, bufSize);
-    succ = msg.setPacket(buffer, bufSize);   
-
-    return succ;
+    Packet packet;
+    bool success = fetchNextCommand(packet);
+    if (success)
+    {
+        success = msg.setPacket(packet);
+    }
+    return success;
 }
 
-bool SerialDevice::fetchNextCommand(uint8_t* array, size_t& arraySize)
+bool SerialDevice::fetchNextCommand(Packet& packet)
 {
     bool isValid = false;
     while (available() > 0 && !isValid)
     {
-        int r = read();
-        isValid = processData(r);
+        isValid = processData(read());
     }
     
     if (isValid)
     {
-        memcpy(array, mPartialMessage, mPMSize);
-        arraySize = mPMSize;
+        packet = m_partialPacket;  // copy
     }
     return isValid;
 }
 
-bool SerialDevice::processData(uint8_t oktet)
+bool SerialDevice::processData(uint8_t octet)
 {
-    switch (mSMState)
+    if (StateMachineState::Start == m_stateMachineState)
+    {
+        m_partialPacket.clear();
+    }
+
+    m_partialPacket.append(octet);
+
+    switch (m_stateMachineState)
     {
         case StateMachineState::Start:
         {
-            mPMSize = 0;
-            mPartialMessage[mPMSize++] = oktet;
-            if (oktet == mId)
+            if (octet == m_id)
             {
-                mSMState = StateMachineState::Id;
+                m_stateMachineState = StateMachineState::Id;
             }
             else
             {
-                mSMState = StateMachineState::Start;
+                m_stateMachineState = StateMachineState::Start;
             }
             break;
         }
         case StateMachineState::Id:
         {
-            if (oktet == mId)
+            if (octet == m_id)
             {
-                mPartialMessage[mPMSize++] = oktet;
-                mSMState = StateMachineState::Command;
+                m_stateMachineState = StateMachineState::Command;
             }
             else
             {
-                mSMState = StateMachineState::Start;
+                m_stateMachineState = StateMachineState::Start;
             }
             break;
         }
         case StateMachineState::Command:
         {
-            mPartialMessage[mPMSize++] = oktet;
-            mSMState = StateMachineState::ParamSize;
+            m_stateMachineState = StateMachineState::ParamSize;
             break;
         }
         case StateMachineState::ParamSize:
         {
-            mPartialMessage[mPMSize++] = oktet;
-            switch (oktet)
+            switch (octet)
             {
-                case 0x00: mSMState = StateMachineState::Checksum; break;
-                case 0x01: mSMState = StateMachineState::Param0; break;
-                case 0x02: mSMState = StateMachineState::Param1; break;
-                case 0x03: mSMState = StateMachineState::Param2; break;
-                case 0x04: mSMState = StateMachineState::Param3; break;
+                case 0x00: m_stateMachineState = StateMachineState::Checksum; break;
+                case 0x01: m_stateMachineState = StateMachineState::Param0; break;
+                case 0x02: m_stateMachineState = StateMachineState::Param1; break;
+                case 0x03: m_stateMachineState = StateMachineState::Param2; break;
+                case 0x04: m_stateMachineState = StateMachineState::Param3; break;
                 default: 
                 {
-                    // Log.println("Discard in ParamSize: " + array2String(mPartialMessage, mPMSize)
-                    //              + " -- faulty byte: " + char2hex(oktet));
-                    mSMState = StateMachineState::Start;
+                    m_stateMachineState = StateMachineState::Start;
                 }
             }
             break;
         }
         case StateMachineState::Param0:
         {
-            mPartialMessage[mPMSize++] = oktet;
-            mSMState = StateMachineState::Checksum; 
+            m_stateMachineState = StateMachineState::Checksum; 
             break;
         }
         case StateMachineState::Param1:
         {
-            mPartialMessage[mPMSize++] = oktet;
-            mSMState = StateMachineState::Param0; 
+            m_stateMachineState = StateMachineState::Param0; 
             break;
         }
         case StateMachineState::Param2:
         {
-            mPartialMessage[mPMSize++] = oktet;
-            mSMState = StateMachineState::Param1;
+            m_stateMachineState = StateMachineState::Param1;
             break;
         }
         case StateMachineState::Param3:
         {
-            mPartialMessage[mPMSize++] = oktet;
-            mSMState = StateMachineState::Param2;
+            m_stateMachineState = StateMachineState::Param2;
             break;
         }
         case StateMachineState::Checksum:
         {
-            uint8_t cmd = mPartialMessage[2];
-            uint8_t paramSize = mPartialMessage[3];
+            uint8_t cmd = m_partialPacket.data()[2];
+            uint8_t paramSize = m_partialPacket.data()[3];
 
             uint8_t params[MAX_PARAM_SIZE];
-            memcpy(params, mPartialMessage + 4, paramSize);
+            memcpy(params, m_partialPacket.data() + 4, paramSize);
             
             uint8_t chk = SerialMessage::computeChecksum(cmd, paramSize, params);
-            if (chk == oktet)
+            if (chk == octet)
             {
-                mPartialMessage[mPMSize++] = oktet;
-                mSMState = StateMachineState::End;
+                m_stateMachineState = StateMachineState::End;
             }
             else
             {
-                // Log.println("Discard: " + array2String(mPartialMessage, mPMSize)
-                //                + " -- faulty byte: " + char2hex(oktet) + " chk: " + char2hex(chk));
-                mSMState = StateMachineState::Start;
+                m_stateMachineState = StateMachineState::Start;
             }
             break;
         }
         case StateMachineState::End:
         {
-            mPartialMessage[mPMSize++] = oktet;
-            mSMState = StateMachineState::Start;
-            return oktet == 0x7E;
+            m_stateMachineState = StateMachineState::Start;
+            return octet == 0x7E;
         }
     }
     return false;
@@ -208,7 +195,10 @@ int HardwareSerialDevice::available()
 void HardwareSerialDevice::setup()
 {
     SerialDevice::setup();
-    Serial.begin(constants::BAUDRATE);
+
+    if (!Serial) {
+        Serial.begin(constants::BAUDRATE);
+    }
 }
 
 void HardwareSerialDevice::loop()
@@ -239,14 +229,17 @@ int SoftwareSerialDevice::available()
 void SoftwareSerialDevice::setup()
 {
     SerialDevice::setup();
-    m_serial.begin(
-        constants::BAUDRATE, 
-        SWSERIAL_8N1, 
+    m_serial.begin(constants::BAUDRATE,
+        SWSERIAL_8N1,
         constants::SOFTWARE_SERIAL_RX,
         constants::SOFTWARE_SERIAL_TX,
-        false,
-        constants::SOFTWARE_SERIAL_INPUT_BUFFER_SIZE,
-        0); 
+        false
+    );
+
+    if (!m_serial)
+    {
+        jlog::error("EspSoftwareSerial initialization failed! Check configured pins.");
+    }
 }
 
 void SoftwareSerialDevice::loop()

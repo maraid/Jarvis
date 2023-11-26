@@ -1,20 +1,33 @@
 #include "utils.h"
 
-String char2hex(uint8_t c)
+
+void charToHex(const uint8_t* pin, char* outp /*exactly len 3*/)
 {
-  String ret = String((c < 16 ? "0" : "") + String(c, HEX));
-  ret.toUpperCase();
-  return ret;
+    const char * hex = "0123456789ABCDEF";
+    const uint8_t* pin_ = pin;
+    *outp++ = hex[(*pin_>>4)&0xF];
+    *outp++ = hex[(*pin_)&0xF];
+    *outp = 0;
 }
 
-String array2String(uint8_t *packet, size_t packetSize)
+void arrayToString(const uint8_t* data, int size, char* outp)
 {
-    String result;
-    for (size_t i = 0; i < packetSize; ++i)
-    {
-        result += char2hex(packet[i]) + " ";
+    const uint8_t* pin = data;
+    char* pout = outp;
+    char hexChar[3];
+    for(int i = 0; i < size-1; ++i){
+        charToHex(pin++, hexChar);
+        *pout++ = hexChar[0];
+        *pout++ = hexChar[1];
+        *pout++ = ' ';
     }
-    return result;
+    if (size > 0)
+    {
+        charToHex(pin, hexChar);
+        *pout++ = hexChar[0];
+        *pout++ = hexChar[1];
+    }
+    *pout = 0;
 }
 
 std::string valToString(UnitsValue units)

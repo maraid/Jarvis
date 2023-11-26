@@ -83,14 +83,6 @@ SerialMessage::SerialMessage(
     mParams[3] = p3;
 }
 
-String SerialMessage::toString() const
-{
-    uint8_t packet[MAX_PACKET_SIZE];
-    uint8_t size;
-    construct(packet, size);
-    return array2String(packet, size);
-}
-
 uint8_t SerialMessage::getType() const
 {
     return mType;
@@ -186,36 +178,37 @@ uint8_t SerialMessage::computeChecksum(uint8_t command, uint8_t paramSize, const
     return checksum;
 }
 
-void SerialMessage::construct(uint8_t* data, uint8_t& size) const
+Packet SerialMessage::construct() const
 {
+    uint8_t data[MAX_PACKET_SIZE];
     data[0] = data[1] = mSourceId;
     data[2] = mType;
     data[3] = mParamSize;
     data[4 + mParamSize] = computeChecksum(mType, mParamSize, mParams);
     data[5 + mParamSize] = 0x7E;
-
     memcpy(data + 4, mParams, mParamSize);
-    size = getPacketLength();
+    return Packet(data, getPacketLength());
 }
 
-bool SerialMessage::setPacket(uint8_t* data, size_t dataSize)
+bool SerialMessage::setPacket(const Packet& packet)
 {
-    if (!verifyPacket(data, dataSize))
+    if (verifyPacket(packet))
     {
-        return false;
+        const uint8_t* data = packet.data();
+        mSourceId = data[0];
+        mType = data[2];
+        mParamSize = data[3];
+        memcpy(mParams, data + 4, mParamSize);
+        return true;
     }
-
-    mSourceId = data[0];
-    mType = data[2];
-    mParamSize = data[3];
-    
-    memcpy(mParams, data + 4, mParamSize);
-
-    return true;
+    return false;
 }
    
-bool SerialMessage::verifyPacket(uint8_t* data, size_t dataSize)
+bool SerialMessage::verifyPacket(const Packet& packet)
 {   
+    const uint8_t* data = packet.data();
+    const uint8_t size = packet.size();
+
     uint8_t paramSize = data[3];
     if (paramSize > MAX_PARAM_SIZE)
     {
@@ -229,7 +222,7 @@ bool SerialMessage::verifyPacket(uint8_t* data, size_t dataSize)
            && (   data[0] == SourceType::Handset
                || data[0] == SourceType::Controller)
            && data[0] == data[1]
-           && dataSize == static_cast<size_t>(6 + paramSize)
-           && data[dataSize - 2] == computeChecksum(data[2], data[3], params)
-           && data[dataSize - 1] == 0x7E;
+           && size == static_cast<size_t>(6 + paramSize)
+           && data[size - 2] == computeChecksum(data[2], data[3], params)
+           && data[size - 1] == 0x7E;
 }

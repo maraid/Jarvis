@@ -20,6 +20,7 @@ esphome:
     - src/common/timer.cpp
     - src/common/utils.h
     - src/common/utils.cpp
+    - src/serial/packet.h
     - src/serial/serial_device.h
     - src/serial/serial_device.cpp
     - src/serial/serial_message.h
@@ -52,6 +53,7 @@ captive_portal:
 
 # Enable logging
 logger:
+  level: DEBUG
   baud_rate: 0
 
 # Enable Home Assistant API
@@ -110,14 +112,14 @@ sensor:
   - platform: template
     name: "$name System limit max"
     id: sys_limit_max
-  # - platform: dht
-  #   model: DHT22
-  #   pin: D3
-  #   temperature:
-  #     name: "Room Temperature"
-  #   humidity:
-  #     name: "Room Humidity"
-  #   update_interval: 60s
+  - platform: dht
+    model: DHT22
+    pin: D3
+    temperature:
+      name: "Room Temperature"
+    humidity:
+      name: "Room Humidity"
+    update_interval: 60s
 
 text_sensor:
   - platform: template
@@ -253,13 +255,13 @@ button:
       then:
         - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).setMinHeight();
   - platform: template
-    name: "$name Set max height"
+    name: "$name Clear max height"
     id: clear_max_height
     on_press:
       then:
         - lambda: (*reinterpret_cast<EspHomeJarvisAdapter*>(id(desk))).clearMaxHeight();
   - platform: template
-    name: "$name Set min height"
+    name: "$name Clear min height"
     id: clear_min_height
     on_press:
       then:

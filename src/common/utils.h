@@ -49,8 +49,8 @@ enum class SensitivityValue : uint8_t
     Unkown     = 0xFF
 };
 
-String char2hex(uint8_t c);
-String array2String(uint8_t *packet, size_t packetSize);
+void charToHex(const uint8_t* pin, char* outp /*exactly len 3*/);
+void arrayToString(const uint8_t* data, int size, char* outp);
 
 std::string valToString(UnitsValue units);
 std::string valToString(UserLimitSetValue limits);

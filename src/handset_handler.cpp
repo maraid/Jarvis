@@ -26,7 +26,7 @@ void HandsetHandler::loop()
     
     if (m_displayValueTimer.isFinished())
     {
-        sendMessage({CommandFromControllerType::Height, m_displayValue}, 3);
+        sendMessage({CommandFromControllerType::Height, m_displayValue});
         m_displayValueTimer.restart();
     }
 }
@@ -68,6 +68,7 @@ void HandsetHandler::handleMessage(const SerialMessage& msg)
             if(height != m_lastReportedHeight)
             {
                 m_displayValueTimer.restart();
+                m_alwaysOnTimer.restart();
                 sendMessage(msg);
             }   
             break;

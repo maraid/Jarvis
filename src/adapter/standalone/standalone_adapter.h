@@ -8,10 +8,10 @@
 #include "logger.h"
 
 
-class TelnetLoggerAdapter : public jlog::GenericLoggerIF
+class Logger : public jlog::GenericLoggerIF
 {
 public:
-    TelnetLoggerAdapter();
+    Logger();
 
     void logV(const char* format, va_list args) const override;
     void logD(const char* format, va_list args) const override;
@@ -21,6 +21,8 @@ public:
     void vlog(jlog::Level level, const char* format, va_list args) const override;
 };
 
+extern Logger logger;
+
 struct StandaloneJarvisAdapter : public Jarvis
 {
     StandaloneJarvisAdapter();
@@ -29,7 +31,7 @@ struct StandaloneJarvisAdapter : public Jarvis
     void loop() override;
 
 private:
-    TelnetLoggerAdapter m_logger;
+    Logger m_logger;
 };
 
 #endif // STANDALONE_ADAPTER_H

@@ -1,15 +1,11 @@
 #ifndef SERIALMESSAGE_H
 #define SERIALMESSAGE_H
 
-#include <Arduino.h>
 #include <stddef.h>
 #include <stdint.h>
 
+#include "packet.h"
 #include "utils.h"
-
-#define MIN_PACKET_SIZE 6
-#define MAX_PARAM_SIZE 4
-#define MAX_PACKET_SIZE MIN_PACKET_SIZE + MAX_PARAM_SIZE
 
 #define FIRST_BYTE(X) ((uint8_t)(X >> 8))
 #define SECOND_BYTE(X) ((uint8_t)X)
@@ -120,8 +116,6 @@ public:
 
     virtual ~SerialMessage() {};
 
-    String toString() const;
-
     uint8_t getType() const;
     void setType(uint8_t val);
 
@@ -156,9 +150,9 @@ public:
     void getParamArray(uint8_t* params, uint8_t& paramSize) const;
     void setParamArray(uint8_t* params, uint8_t paramSize);
 
-    void construct(uint8_t* data, uint8_t& size) const;
-    bool setPacket(uint8_t* data, size_t dataSize);
-    static bool verifyPacket(uint8_t* data, size_t dataSize);
+    Packet construct() const;
+    bool setPacket(const Packet& packet);
+    static bool verifyPacket(const Packet& packet);
     
     static uint8_t computeChecksum(uint8_t command, uint8_t paramSize, const uint8_t* params);
 

@@ -22,7 +22,7 @@ void Jarvis::handleHandset()
     SerialMessage inMsg;
     if (m_handset.fetchMessage(inMsg))
     {
-        jlog::debug("From Handset: %s", inMsg.toString().c_str());
+        jlog::debug("From Handset: %s", inMsg.construct().c_str());
         m_controller.handleMessage(inMsg);
     }
 }
@@ -32,7 +32,7 @@ void Jarvis::handleController()
     SerialMessage inMsg;
     if (m_controller.fetchMessage(inMsg))
     {
-        jlog::debug("From Controller: %s", inMsg.toString().c_str());
+        jlog::debug("From Controller: %d: %s", inMsg.getPacketLength(), inMsg.construct().c_str());
         m_handset.handleMessage(inMsg);
     }
 }
